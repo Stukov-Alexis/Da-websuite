@@ -1,0 +1,34 @@
+[
+  {
+    "name": "Cat",
+    "image": "1.jpg",
+    "description": "little gobblin[elf]",
+    "date": "2025-01-09"
+  },
+  {
+    "name": "Jadi gini bit",
+    "image": "2.jpg",
+    "description": "Jadi gini bit, jangan klem",
+    "date": "2025-01-09"
+  },
+  {
+    "name": "Woooaaahhhh",
+    "image": "3.png",
+    "description": "punch with da fira",
+    "date": "2025-01-09"
+  },
+  {
+    "name": "Who?",
+    "image": "4.jpeg",
+    "description": "pake nanya",
+    "date": "2025-01-09"
+  },
+  {
+    "name": "No way",
+    "image": "5.jpg",
+    "description": "la rio",
+    "date": "2025-01-09"
+  }
+
+]
+

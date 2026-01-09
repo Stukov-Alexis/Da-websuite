@@ -3,310 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Market Terminal</title>
-    <link rel="stylesheet" href="/styles.css">
+    <title>Photo & Video Gallery</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="top-bar">
-        <div class="logo">MARKET TERMINAL</div>
-        <div class="stats">
-            <span class="stat-item">ITEMS: <span id="item-count">0</span></span>
-            <span class="stat-item">TOTAL QTY: <span id="total-qty">0</span></span>
-        </div>
-    </div>
-
-    <div class="container">
-        <div class="sidebar">
-            <div class="panel">
-                <div class="panel-header">ACTIONS</div>
-                <div class="panel-content">
-                    <button id="add-btn" class="action-btn">+ NEW ENTRY</button>
-                    <button id="refresh-btn" class="action-btn secondary">REFRESH</button>
-                </div>
+    <div class="main-wrapper">
+        <!-- Left Sidebar Tray -->
+        <div class="sidebar-tray">
+            <div class="sidebar-header">
+                <h2>List my</h2>
             </div>
-            
-            <div class="panel">
-                <div class="panel-header">FILTERS</div>
-                <div class="panel-content">
-                    <input type="text" id="search" placeholder="Search items..." class="search-input">
-                    <select id="sort" class="select-input">
-                        <option value="newest">Newest First</option>
-                        <option value="oldest">Oldest First</option>
-                        <option value="name">Name A-Z</option>
-                        <option value="quantity">Quantity</option>
-                    </select>
-                </div>
+            <div class="sidebar-list" id="sidebar-list">
+                <div class="empty-list">Loading...</div>
             </div>
         </div>
 
-        <div class="main-content">
-            <div class="table-container">
-                <table id="items-table">
-                    <thead>
-                        <tr>
-                            <th>IMAGE</th>
-                            <th>NAME</th>
-                            <th>QTY</th>
-                            <th>NOTE 1</th>
-                            <th>NOTE 2</th>
-                            <th>NOTE 3</th>
-                            <th>TIMESTAMP</th>
-                            <th>ACTIONS</th>
-                        </tr>
-                    </thead>
-                    <tbody id="items-tbody">
-                    </tbody>
-                </table>
-                <div id="empty-state" class="empty-state" style="display:none;">
-                    <div class="empty-icon">■</div>
-                    <p>NO ITEMS IN DATABASE</p>
-                    <p class="empty-sub">Click NEW ENTRY to add items</p>
+        <!-- Main Content -->
+        <div class="main-content-wrapper">
+            <div class="container">
+                <div class="header">
+                    <h1>Foto My</h1>
+                </div>
+
+                <div class="gallery-wrapper">
+                    <div id="items-container">
+                        <div id="empty-state" class="empty-state">
+                            <p>Loading gallery...</p>
+                        </div>
+                    </div>
+
+                    <!-- Preview Panel -->
+                    <div class="preview-panel" id="preview-panel">
+                        <div class="preview-content">
+                            <div class="preview-placeholder">
+                                <p>👆 Click an item to preview</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal -->
-    <div id="modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modal-title">Add New Item</h2>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
-            </div>
-            
-            <form id="item-form" enctype="multipart/form-data">
-                <input type="hidden" id="item-id">
-                
-                <div class="form-group">
-                    <label for="image">Image:</label>
-                    <input type="file" id="image" accept="image/*">
-                    <div id="image-preview"></div>
-                </div>
-
-                <div class="form-group">
-                    <label for="name">Name: *</label>
-                    <input type="text" id="name" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="quantity">Quantity: *</label>
-                    <input type="number" id="quantity" min="0" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="note1">Note 1:</label>
-                    <textarea id="note1" rows="2"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="note2">Note 2:</label>
-                    <textarea id="note2" rows="2"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="note3">Note 3:</label>
-                    <textarea id="note3" rows="2"></textarea>
-                </div>
-
-                <div class="form-actions">
-                    <button type="button" onclick="closeModal()" class="secondary-btn">Cancel</button>
-                    <button type="submit" class="primary-btn">Save</button>
-                </div>
-            </form>
+    <!-- Zoom Modal -->
+    <div id="zoom-modal" class="zoom-modal">
+        <div class="zoom-container">
+            <img id="zoom-image" class="zoom-image" src="" alt="">
+            <video id="zoom-video" class="zoom-image" controls style="display: none;"></video>
+            <button class="zoom-close" onclick="closeZoom()">&times;</button>
         </div>
     </div>
 
     <script>
         let items = [];
-        let editingId = null;
+        const IMAGE_FOLDER = 'laimage/';
+        const SUPPORTED_FORMATS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm'];
 
         // Load items on page load
         loadItems();
 
         async function loadItems() {
             try {
-                const response = await fetch('/api/items');
-                items = await response.json();
+                // Try to load from manifest.json first
+                const response = await fetch('laimage/manifest.json');
+                if (response.ok) {
+                    items = await response.json();
+                } else {
+                    items = [];
+                }
                 displayItems();
             } catch (error) {
-                console.error('Error loading items:', error);
+                console.error('Error loading manifest:', error);
+                items = [];
+                displayItems();
             }
         }
 
         function displayItems() {
-            const tbody = document.getElementById('items-tbody');
-            const emptyState = document.getElementById('empty-state');
-            const table = document.getElementById('items-table');
+            const container = document.getElementById('items-container');
+            const sidebarList = document.getElementById('sidebar-list');
             
-            // Update stats
-            document.getElementById('item-count').textContent = items.length;
-            const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
-            document.getElementById('total-qty').textContent = totalQty;
-            
-            // Apply filters
-            let filteredItems = filterAndSortItems();
-            
-            if (filteredItems.length === 0) {
-                table.style.display = 'none';
-                emptyState.style.display = 'flex';
+            if (items.length === 0) {
+                container.innerHTML = '<div id="empty-state" class="empty-state"><p>No images in gallery. Add images to the laimage folder and update manifest.json</p></div>';
+                sidebarList.innerHTML = '<div class="empty-list">No items</div>';
                 return;
             }
-            
-            table.style.display = 'table';
-            emptyState.style.display = 'none';
 
-            tbody.innerHTML = filteredItems.map(item => {
-                const date = new Date(item.timestamp).toLocaleString();
+            // Update main gallery
+            const itemsHTML = items.map((item, index) => {
+                const mediaElement = item.image ? 
+                    `<img src="${IMAGE_FOLDER}${item.image}" alt="${item.name}" class="item-image">` :
+                    '<div class="no-image">No Media</div>';
+                
                 return `
-                    <tr>
-                        <td class="img-cell">
-                            ${item.image ? `<img src="${item.image}" alt="${item.name}" class="table-image">` : '<div class="no-img">-</div>'}
-                        </td>
-                        <td class="name-cell">${escapeHtml(item.name)}</td>
-                        <td class="qty-cell">${item.quantity}</td>
-                        <td class="note-cell">${escapeHtml(item.note1) || '-'}</td>
-                        <td class="note-cell">${escapeHtml(item.note2) || '-'}</td>
-                        <td class="note-cell">${escapeHtml(item.note3) || '-'}</td>
-                        <td class="time-cell">${date}</td>
-                        <td class="action-cell">
-                            <button onclick="editItem('${item.id}')" class="table-btn edit">EDIT</button>
-                            <button onclick="deleteItem('${item.id}')" class="table-btn delete">DELETE</button>
-                        </td>
-                    </tr>
+                    <div class="item-card" onclick="showPreview(${index})">
+                        ${mediaElement}
+                        <div class="item-content">
+                            <h3>${escapeHtml(item.name)}</h3>
+                            ${item.description ? `<p class="note">${escapeHtml(item.description)}</p>` : ''}
+                            ${item.date ? `<p class="timestamp">${item.date}</p>` : ''}
+                        </div>
+                    </div>
                 `;
             }).join('');
+
+            container.innerHTML = itemsHTML;
+
+            // Update sidebar list
+            const sidebarHTML = items.map((item, index) => `
+                <div class="sidebar-item" onclick="showPreview(${index})">
+                    <div class="sidebar-item-thumb">
+                        ${item.image ? `<img src="${IMAGE_FOLDER}${item.image}" alt="${item.name}">` : '<div class="no-thumb">📷</div>'}
+                    </div>
+                    <div class="sidebar-item-text">
+                        <div class="sidebar-item-title">${escapeHtml(item.name)}</div>
+                        ${item.date ? `<div class="sidebar-item-date">${item.date}</div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            sidebarList.innerHTML = sidebarHTML;
         }
         
-        function filterAndSortItems() {
-            let filtered = [...items];
+        function showPreview(index) {
+            if (index < 0 || index >= items.length) return;
             
-            // Search filter
-            const searchTerm = document.getElementById('search').value.toLowerCase();
-            if (searchTerm) {
-                filtered = filtered.filter(item => 
-                    item.name.toLowerCase().includes(searchTerm) ||
-                    item.note1.toLowerCase().includes(searchTerm) ||
-                    item.note2.toLowerCase().includes(searchTerm) ||
-                    item.note3.toLowerCase().includes(searchTerm)
-                );
+            const item = items[index];
+            const previewPanel = document.getElementById('preview-panel');
+            
+            if (!item.image) {
+                previewPanel.innerHTML = '<div class="preview-content"><div class="preview-placeholder"><p>No media available</p></div></div>';
+                return;
             }
+
+            const isVideo = /\.(mp4|webm|avi|mov|mkv)$/i.test(item.image);
             
-            // Sort
-            const sortBy = document.getElementById('sort').value;
-            switch(sortBy) {
-                case 'newest':
-                    filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                    break;
-                case 'oldest':
-                    filtered.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-                    break;
-                case 'name':
-                    filtered.sort((a, b) => a.name.localeCompare(b.name));
-                    break;
-                case 'quantity':
-                    filtered.sort((a, b) => b.quantity - a.quantity);
-                    break;
+            let mediaHTML = '';
+            if (isVideo) {
+                mediaHTML = `<video class="preview-video-player" controls onclick="openZoom('${item.image}', true)" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px; cursor: zoom-in;"><source src="${IMAGE_FOLDER}${item.image}"></video>`;
+            } else {
+                mediaHTML = `<img src="${IMAGE_FOLDER}${item.image}" alt="${item.name}" onclick="openZoom('${item.image}', false)" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px; cursor: zoom-in;">`;
             }
-            
-            return filtered;
+
+            previewPanel.innerHTML = `
+                <div class="preview-content">
+                    <div class="preview-media">
+                        ${mediaHTML}
+                    </div>
+                    <div class="preview-info">
+                        <h2>${escapeHtml(item.name)}</h2>
+                        ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ''}
+                        ${item.date ? `<p class="preview-date">📅 ${item.date}</p>` : ''}
+                    </div>
+                </div>
+            `;
         }
-
-        document.getElementById('add-btn').addEventListener('click', () => {
-            editingId = null;
-            document.getElementById('modal-title').textContent = 'Add New Item';
-            document.getElementById('item-form').reset();
-            document.getElementById('item-id').value = '';
-            document.getElementById('image-preview').innerHTML = '';
-            document.getElementById('modal').style.display = 'flex';
-        });
-
-        function closeModal() {
-            document.getElementById('modal').style.display = 'none';
-        }
-
-        function editItem(id) {
-            const item = items.find(i => i.id === id);
-            if (!item) return;
-
-            editingId = id;
-            document.getElementById('modal-title').textContent = 'Edit Item';
-            document.getElementById('item-id').value = id;
-            document.getElementById('name').value = item.name;
-            document.getElementById('quantity').value = item.quantity;
-            document.getElementById('note1').value = item.note1;
-            document.getElementById('note2').value = item.note2;
-            document.getElementById('note3').value = item.note3;
-            
-            if (item.image) {
-                document.getElementById('image-preview').innerHTML = `<img src="${item.image}" alt="Preview">`;
-            }
-            
-            document.getElementById('modal').style.display = 'flex';
-        }
-
-        async function deleteItem(id) {
-            if (!confirm('Are you sure you want to delete this item?')) return;
-
-            try {
-                const response = await fetch(`/api/items/${id}`, {
-                    method: 'DELETE'
-                });
-                
-                if (response.ok) {
-                    await loadItems();
+        
+        function scrollToItem(imageName) {
+            const cards = document.querySelectorAll('.item-card');
+            for (let card of cards) {
+                const img = card.querySelector('img');
+                if (img && img.src.includes(imageName)) {
+                    card.scrollIntoView({ behavior: 'smooth' });
+                    break;
                 }
-            } catch (error) {
-                console.error('Error deleting item:', error);
-                alert('Failed to delete item');
             }
         }
-
-        document.getElementById('image').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    document.getElementById('image-preview').innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        document.getElementById('item-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const formData = new FormData();
-            formData.append('name', document.getElementById('name').value);
-            formData.append('quantity', document.getElementById('quantity').value);
-            formData.append('note1', document.getElementById('note1').value);
-            formData.append('note2', document.getElementById('note2').value);
-            formData.append('note3', document.getElementById('note3').value);
-            
-            const imageFile = document.getElementById('image').files[0];
-            if (imageFile) {
-                formData.append('image', imageFile);
-            }
-
-            try {
-                const url = editingId ? `/api/items/${editingId}` : '/api/items';
-                const method = editingId ? 'PUT' : 'POST';
-                
-                const response = await fetch(url, {
-                    method: method,
-                    body: formData
-                });
-
-                if (response.ok) {
-                    closeModal();
-                    await loadItems();
-                } else {
-                    alert('Failed to save item');
-                }
-            } catch (error) {
-                console.error('Error saving item:', error);
-                alert('Failed to save item');
-            }
-        });
 
         function escapeHtml(text) {
             const div = document.createElement('div');
@@ -314,18 +176,44 @@
             return div.innerHTML;
         }
 
-        // Filter event listeners
-        document.getElementById('search').addEventListener('input', displayItems);
-        document.getElementById('sort').addEventListener('change', displayItems);
-        document.getElementById('refresh-btn').addEventListener('click', loadItems);
-        
-        // Close modal when clicking outside
-        window.onclick = (event) => {
-            const modal = document.getElementById('modal');
-            if (event.target === modal) {
-                closeModal();
+        function openZoom(imagePath, isVideo = false) {
+            const modal = document.getElementById('zoom-modal');
+            const zoomImg = document.getElementById('zoom-image');
+            const zoomVid = document.getElementById('zoom-video');
+
+            if (isVideo) {
+                zoomImg.style.display = 'none';
+                zoomVid.style.display = 'block';
+                zoomVid.src = IMAGE_FOLDER + imagePath;
+            } else {
+                zoomVid.style.display = 'none';
+                zoomImg.style.display = 'block';
+                zoomImg.src = IMAGE_FOLDER + imagePath;
             }
-        };
+
+            modal.classList.add('active');
+        }
+
+        function closeZoom() {
+            const modal = document.getElementById('zoom-modal');
+            modal.classList.remove('active');
+            document.getElementById('zoom-image').src = '';
+            document.getElementById('zoom-video').src = '';
+        }
+
+        // Close zoom modal on background click
+        document.getElementById('zoom-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeZoom();
+            }
+        });
+
+        // Close zoom modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeZoom();
+            }
+        });
     </script>
 </body>
 </html>
