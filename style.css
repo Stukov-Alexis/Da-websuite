@@ -854,6 +854,7 @@ body {
     height: 100%;
     object-fit: contain;
     border-radius: 8px;
+    border: 2px solid rgba(78, 192, 255, 0.5);
     animation: zoomInSlow 1.0s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
