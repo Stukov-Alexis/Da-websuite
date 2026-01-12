@@ -12,7 +12,7 @@
         <!-- Left Sidebar Tray -->
         <div class="sidebar-tray">
             <div class="sidebar-header">
-                <h2>List my</h2>
+                <h2>Directories</h2>
             </div>
             <div class="sidebar-list" id="sidebar-list">
                 <div class="empty-list">Loading...</div>
@@ -23,7 +23,7 @@
         <div class="main-content-wrapper">
             <div class="container">
                 <div class="header">
-                    <h1>Foto My</h1>
+                    <h1 style="color: black;">Foto My</h1>
                 </div>
 
                 <div class="gallery-wrapper">
@@ -55,47 +55,110 @@
         </div>
     </div>
 
+    <!-- Audio Player for BGM -->
+    <audio id="bgm-audio" loop style="display: none;"></audio>
+
+    <!-- BGM Player - Bottom Right Corner -->
+    <div id="bgm-player" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; background: linear-gradient(135deg, rgba(11,26,36,0.95), rgba(3,4,10,0.95)); padding: 14px; border-radius: 2px; box-shadow: 0 0 30px rgba(78,192,255,0.4), inset 0 1px 0 rgba(255,255,255,0.05); border: 2px solid rgba(78,192,255,0.5); display: none; flex-direction: column; gap: 10px; align-items: stretch; max-width: 320px; backdrop-filter: blur(8px);">
+        <!-- Progress Bar -->
+        <div style="width: 100%; height: 6px; background: rgba(0,0,0,0.5); border: 1px solid rgba(78,192,255,0.3); border-radius: 2px; overflow: hidden; box-shadow: inset 0 0 8px rgba(78,192,255,0.2);">
+            <div id="bgm-progress" style="height: 100%; width: 0%; background: linear-gradient(90deg, #4ec0ff, #7be0c8); transition: width 0.1s linear; box-shadow: 0 0 8px rgba(78,192,255,0.6);"></div>
+        </div>
+        <!-- Time Display -->
+        <div style="font-size: 9px; color: rgba(212,228,239,0.7); font-family: 'Courier New', monospace; text-align: center;">
+            <span id="bgm-time-current">0:00</span> / <span id="bgm-time-duration">0:00</span>
+        </div>
+        <!-- Controls -->
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <label style="color: #4ec0ff; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; text-shadow: 0 0 8px rgba(78,192,255,0.6);">🎵 BGM</label>
+            <select id="bgm-select" style="padding: 6px 8px; border-radius: 2px; border: 1px solid rgba(78,192,255,0.6); background: rgba(3,4,10,0.8); cursor: pointer; font-size: 11px; color: #d7eef9; font-family: 'Courier New', monospace; box-shadow: 0 0 12px rgba(78,192,255,0.2); flex: 1; min-width: 100px;">
+                <option value="">-- None --</option>
+            </select>
+            <button id="bgm-toggle" style="padding: 6px 12px; border-radius: 2px; border: 1px solid rgba(78,192,255,0.6); background: linear-gradient(135deg, rgba(78,192,255,0.2), rgba(78,192,255,0.1)); cursor: pointer; font-size: 10px; font-weight: 600; color: #4ec0ff; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s; box-shadow: 0 0 10px rgba(78,192,255,0.3);">▶ Play</button>
+            <input id="bgm-volume" type="range" min="0" max="100" value="5" style="width: 60px; cursor: pointer; height: 6px; accent-color: #4ec0ff; border-radius: 3px;">
+        </div>
+    </div>
+
     <script>
         let items = [];
-        const IMAGE_FOLDER = 'laimage/';
+        let currentFolder = 'laimage';
+        let folders = ['laimage'];
         const SUPPORTED_FORMATS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm'];
 
-        // Load items on page load
-        loadItems();
+        // Initialize on load: try to read folders.json (optional), then load the default folder
+        (async function init() {
+            await loadFolders();
+            await loadItems(currentFolder);
+        })();
 
-        async function loadItems() {
+        // Try to fetch a folders.json which can list available directories.
+        // The file can be an array of strings (paths) or array of objects { path, label }.
+        async function loadFolders() {
             try {
-                // Try to load from manifest.json first
-                const response = await fetch('laimage/manifest.json');
+                const res = await fetch('folders.json');
+                if (!res.ok) throw new Error('no folders.json');
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    folders = data.map(f => typeof f === 'string' ? { path: f, label: f } : { path: f.path, label: f.label || f.path, icon: f.icon });
+                }
+            } catch (e) {
+                // fallback to default
+                folders = [{ path: 'laimage', label: 'laimage' }];
+            }
+            renderFolderList();
+        }
+
+        function renderFolderList() {
+            const sidebar = document.getElementById('sidebar-list');
+            sidebar.innerHTML = folders.map((f, idx) => {
+                const thumbContent = f.icon ? 
+                    `<img src="${f.icon}" alt="${f.label}" style="width: 100%; height: 100%; object-fit: cover;">` :
+                    `<div class="no-thumb">📁</div>`;
+                return `
+                    <div class="sidebar-item" data-path="${f.path}" onclick="loadItems('${f.path}')">
+                        <div class="sidebar-item-thumb">${thumbContent}</div>
+                        <div class="sidebar-item-text">
+                            <div class="sidebar-item-title">${escapeHtml(f.label)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function loadItems(folderPath) {
+            currentFolder = folderPath;
+            const container = document.getElementById('items-container');
+            container.innerHTML = '<div class="empty-state"><p>Loading gallery...</p></div>';
+            try {
+                const response = await fetch(`${folderPath}/manifest.json`);
                 if (response.ok) {
                     items = await response.json();
                 } else {
                     items = [];
                 }
-                displayItems();
             } catch (error) {
-                console.error('Error loading manifest:', error);
+                console.error('Error loading manifest for', folderPath, error);
                 items = [];
-                displayItems();
             }
+            displayItems();
+        }
+
+        function imageUrl(name) {
+            return `${currentFolder}/${name}`;
         }
 
         function displayItems() {
             const container = document.getElementById('items-container');
-            const sidebarList = document.getElementById('sidebar-list');
-            
-            if (items.length === 0) {
-                container.innerHTML = '<div id="empty-state" class="empty-state"><p>No images in gallery. Add images to the laimage folder and update manifest.json</p></div>';
-                sidebarList.innerHTML = '<div class="empty-list">No items</div>';
+            if (!items || items.length === 0) {
+                container.innerHTML = `<div id="empty-state" class="empty-state"><p>No images in ${escapeHtml(currentFolder)}. Add images and a manifest.json to the folder.</p></div>`;
                 return;
             }
 
-            // Update main gallery
             const itemsHTML = items.map((item, index) => {
-                const mediaElement = item.image ? 
-                    `<img src="${IMAGE_FOLDER}${item.image}" alt="${item.name}" class="item-image">` :
+                const mediaElement = item.image ?
+                    `<img src="${imageUrl(item.image)}" alt="${item.name}" class="item-image">` :
                     '<div class="no-image">No Media</div>';
-                
+
                 return `
                     <div class="item-card" onclick="showPreview(${index})">
                         ${mediaElement}
@@ -109,41 +172,24 @@
             }).join('');
 
             container.innerHTML = itemsHTML;
-
-            // Update sidebar list
-            const sidebarHTML = items.map((item, index) => `
-                <div class="sidebar-item" onclick="showPreview(${index})">
-                    <div class="sidebar-item-thumb">
-                        ${item.image ? `<img src="${IMAGE_FOLDER}${item.image}" alt="${item.name}">` : '<div class="no-thumb">📷</div>'}
-                    </div>
-                    <div class="sidebar-item-text">
-                        <div class="sidebar-item-title">${escapeHtml(item.name)}</div>
-                        ${item.date ? `<div class="sidebar-item-date">${item.date}</div>` : ''}
-                    </div>
-                </div>
-            `).join('');
-
-            sidebarList.innerHTML = sidebarHTML;
         }
-        
+
         function showPreview(index) {
             if (index < 0 || index >= items.length) return;
-            
             const item = items[index];
             const previewPanel = document.getElementById('preview-panel');
-            
+
             if (!item.image) {
                 previewPanel.innerHTML = '<div class="preview-content"><div class="preview-placeholder"><p>No media available</p></div></div>';
                 return;
             }
 
             const isVideo = /\.(mp4|webm|avi|mov|mkv)$/i.test(item.image);
-            
             let mediaHTML = '';
             if (isVideo) {
-                mediaHTML = `<video class="preview-video-player" controls onclick="openZoom('${item.image}', true)" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px; cursor: zoom-in;"><source src="${IMAGE_FOLDER}${item.image}"></video>`;
+                mediaHTML = `<video class="preview-video-player" controls onclick="openZoom('${item.image}', true)" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px; cursor: zoom-in;"><source src="${imageUrl(item.image)}"></video>`;
             } else {
-                mediaHTML = `<img src="${IMAGE_FOLDER}${item.image}" alt="${item.name}" onclick="openZoom('${item.image}', false)" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px; cursor: zoom-in;">`;
+                mediaHTML = `<img src="${imageUrl(item.image)}" alt="${item.name}" onclick="openZoom('${item.image}', false)" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px; cursor: zoom-in;">`;
             }
 
             previewPanel.innerHTML = `
@@ -158,17 +204,6 @@
                     </div>
                 </div>
             `;
-        }
-        
-        function scrollToItem(imageName) {
-            const cards = document.querySelectorAll('.item-card');
-            for (let card of cards) {
-                const img = card.querySelector('img');
-                if (img && img.src.includes(imageName)) {
-                    card.scrollIntoView({ behavior: 'smooth' });
-                    break;
-                }
-            }
         }
 
         function escapeHtml(text) {
@@ -185,11 +220,11 @@
             if (isVideo) {
                 zoomImg.style.display = 'none';
                 zoomVid.style.display = 'block';
-                zoomVid.src = IMAGE_FOLDER + imagePath;
+                zoomVid.src = imageUrl(imagePath);
             } else {
                 zoomVid.style.display = 'none';
                 zoomImg.style.display = 'block';
-                zoomImg.src = IMAGE_FOLDER + imagePath;
+                zoomImg.src = imageUrl(imagePath);
             }
 
             modal.classList.add('active');
@@ -204,15 +239,129 @@
 
         // Close zoom modal on background click
         document.getElementById('zoom-modal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeZoom();
-            }
+            if (e.target === this) closeZoom();
         });
 
         // Close zoom modal on Escape key
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeZoom();
+            if (e.key === 'Escape') closeZoom();
+        });
+
+        // ===== BGM Player Logic =====
+        let bgmList = [];
+        let bgmAudio = document.getElementById('bgm-audio');
+        const bgmSelect = document.getElementById('bgm-select');
+        const bgmToggle = document.getElementById('bgm-toggle');
+        const bgmVolume = document.getElementById('bgm-volume');
+
+        // Load BGM list from manifest
+        async function loadBGM() {
+            try {
+                const res = await fetch('labgm/manifest.json');
+                if (res.ok) {
+                    bgmList = await res.json();
+                    renderBGMSelect();
+                    // Just set the first BGM src, don't play it yet
+                    if (bgmList.length > 0) {
+                        bgmSelect.value = '0';
+                        const bgm = bgmList[0];
+                        if (bgm && bgm.image) {
+                            bgmAudio.src = 'labgm/' + bgm.image;
+                            bgmAudio.volume = 0.05;  // Set initial volume to 0.05 (5%)
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading BGM manifest:', e);
+            }
+        }
+
+        function renderBGMSelect() {
+            bgmSelect.innerHTML = bgmList.map((item, idx) => 
+                `<option value="${idx}">${escapeHtml(item.name)}</option>`
+            ).join('');
+        }
+
+        function playBGM(idx) {
+            const bgm = bgmList[idx];
+            if (bgm && bgm.image) {
+                bgmAudio.src = 'labgm/' + bgm.image;
+                bgmAudio.volume = 0.05;  // Set volume to 50%
+                bgmAudio.muted = false;  // Unmute when playing
+                bgmAudio.play();
+                bgmToggle.textContent = 'Pause';
+                document.getElementById('bgm-player').style.display = 'flex';  // Show player
+            }
+        }
+
+        // Handle BGM selection
+        bgmSelect.addEventListener('change', function() {
+            if (this.value === '') {
+                bgmAudio.pause();
+                bgmAudio.src = '';
+                bgmToggle.textContent = 'Play';
+                document.getElementById('bgm-player').style.display = 'none';  // Hide player
+                return;
+            }
+            const idx = parseInt(this.value);
+            playBGM(idx);
+        });
+
+        // Handle play/pause toggle
+        bgmToggle.addEventListener('click', function() {
+            if (bgmAudio.src === '') return;
+            if (bgmAudio.paused) {
+                bgmAudio.play();
+                this.textContent = 'Pause';
+            } else {
+                bgmAudio.pause();
+                this.textContent = 'Play';
+            }
+        });
+
+        // Handle volume control
+        bgmVolume.addEventListener('input', function() {
+            bgmAudio.volume = this.value / 100;
+            bgmAudio.muted = false;  // Unmute when user adjusts volume
+        });
+
+        // Format time helper
+        function formatTime(seconds) {
+            if (!seconds || isNaN(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Update progress bar and time display
+        bgmAudio.addEventListener('timeupdate', function() {
+            const progress = (this.currentTime / this.duration) * 100;
+            document.getElementById('bgm-progress').style.width = progress + '%';
+            document.getElementById('bgm-time-current').textContent = formatTime(this.currentTime);
+        });
+
+        // Update duration when metadata loads
+        bgmAudio.addEventListener('loadedmetadata', function() {
+            document.getElementById('bgm-time-duration').textContent = formatTime(this.duration);
+        });
+
+        // Update play button text when audio ends
+        bgmAudio.addEventListener('ended', function() {
+            bgmToggle.textContent = '▶ Play';
+        });
+
+        // Initialize BGM on page load
+        loadBGM();
+
+        // Play BGM on first click anywhere on the page
+        document.addEventListener('click', function playOnClick() {
+            if (bgmList.length > 0 && bgmAudio.src && bgmAudio.paused) {
+                bgmAudio.muted = false;
+                bgmAudio.play().catch(err => console.log('Autoplay blocked:', err));
+                bgmToggle.textContent = '⏸ Pause';
+                document.getElementById('bgm-player').style.display = 'flex';  // Show player
+                // Remove listener after first click
+                document.removeEventListener('click', playOnClick);
             }
         });
     </script>
