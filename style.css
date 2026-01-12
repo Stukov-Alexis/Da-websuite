@@ -1,7 +1,257 @@
+@font-face {
+    font-family: 'NEXON Football Gothic L';
+    src: url('font/NEXON_Football_Gothic_L.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+/* Loading Page Styles */
+.loading-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #02040a 0%, #031027 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    backdrop-filter: blur(10px);
+}
+
+.loader-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+}
+
+.loader {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+}
+
+.loader-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4ec0ff, #7be0c8);
+    animation: bounce 1.2s infinite ease-in-out;
+    box-shadow: 0 0 10px rgba(78, 192, 255, 0.6);
+}
+
+.loader-dot:nth-child(1) {
+    animation-delay: -0.24s;
+}
+
+.loader-dot:nth-child(2) {
+    animation-delay: -0.12s;
+}
+
+@keyframes bounce {
+    0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.6;
+    }
+    40% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+}
+
+.loading-text {
+    font-size: 18px;
+    color: #4ec0ff;
+    font-weight: 600;
+    letter-spacing: 2px;
+    animation: fadeInOut 1.5s ease-in-out infinite;
+    text-shadow: 0 0 10px rgba(78, 192, 255, 0.5);
+}
+
+@keyframes fadeInOut {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+.fade-out {
+    animation: fadeOutLoader 0.5s ease-out forwards;
+}
+
+@keyframes fadeOutLoader {
+    from {
+        opacity: 1;
+        visibility: visible;
+    }
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+/* Directory Loading Overlay */
+.directory-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(2, 4, 10, 0.95), rgba(3, 16, 39, 0.95));
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 5000;
+    backdrop-filter: blur(5px);
+    border-radius: 8px;
+}
+
+.directory-loading.show {
+    display: flex;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.directory-loading.hide {
+    animation: fadeOut 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* Click Me Page Styles */
+.click-me-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #02040a 0%, #031027 100%);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9998;
+    backdrop-filter: blur(10px);
+}
+
+.click-me-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+    animation: slideInDown 0.6s ease-out;
+}
+
+.click-me-title {
+    font-size: 64px;
+    color: #4ec0ff;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-shadow: 0 0 30px rgba(78, 192, 255, 0.8), 0 0 60px rgba(123, 224, 200, 0.4);
+    animation: glow 2s ease-in-out infinite;
+    font-family: 'NEXON Football Gothic L', sans-serif;
+}
+
+@keyframes glow {
+    0%, 100% {
+        text-shadow: 0 0 30px rgba(78, 192, 255, 0.8), 0 0 60px rgba(123, 224, 200, 0.4);
+    }
+    50% {
+        text-shadow: 0 0 40px rgba(78, 192, 255, 1), 0 0 80px rgba(123, 224, 200, 0.6);
+    }
+}
+
+.click-me-button {
+    padding: 16px 48px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #03040a;
+    background: linear-gradient(135deg, #4ec0ff, #7be0c8);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 20px rgba(78, 192, 255, 0.5), 0 8px 20px rgba(0, 0, 0, 0.3);
+    animation: pulse-button 2s ease-in-out infinite;
+    font-family: 'NEXON Football Gothic L', sans-serif;
+}
+
+.click-me-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 30px rgba(78, 192, 255, 0.8), 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+.click-me-button:active {
+    transform: scale(0.98);
+}
+
+@keyframes pulse-button {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(78, 192, 255, 0.5), 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(78, 192, 255, 0.8), 0 8px 30px rgba(0, 0, 0, 0.4);
+    }
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Hexagon Canvas Animation */
+.hexagon-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9997;
+    pointer-events: none;
+}
+
+/* Directory Hexagon Canvas - for items container only */
+.directory-hexagon-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5000;
+    pointer-events: none;
+    display: none;
 }
 
 #bgm-player {
@@ -87,6 +337,7 @@ body {
     color: #e9fbff;
     margin: 0;
     font-weight: 600;
+    font-family: 'NEXON Football Gothic L', sans-serif;
 }
 
 .add-btn-small {
@@ -118,6 +369,7 @@ body {
     max-height: none;
     flex: 1;
     padding-right: 8px;
+    font-family: 'NEXON Football Gothic L', sans-serif;
 }
 
 .sidebar-list::-webkit-scrollbar {
@@ -153,6 +405,27 @@ body {
     background: rgba(78,192,255,0.08);
     border-color: rgba(78,192,255,0.3);
     box-shadow: 0 0 12px rgba(78,192,255,0.15);
+}
+
+.sidebar-item.clicked {
+    animation: directoryClick 0.6s ease-out;
+}
+
+@keyframes directoryClick {
+    0% {
+        transform: scale(1) translateX(0);
+        background: rgba(78,192,255,0.1);
+        border-color: rgba(78,192,255,0.5);
+    }
+    50% {
+        transform: scale(1.05) translateX(8px);
+        box-shadow: 0 0 20px rgba(78,192,255,0.4);
+    }
+    100% {
+        transform: scale(1) translateX(0);
+        background: rgba(78,192,255,0.08);
+        border-color: rgba(78,192,255,0.3);
+    }
 }
 
 .sidebar-item-thumb {
