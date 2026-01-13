@@ -22,6 +22,7 @@
 
     <!-- Click Me Page -->
     <div id="click-me-page" class="click-me-page">
+        <canvas id="login-hexagon-canvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; animation: fadeInHexagons 1.5s ease-out forwards;"></canvas>
         <div class="click-me-container">
             <h1 class="click-me-title">WELCOME TYRANT</h1>
             <button class="click-me-button" onclick="hideClickMePage()">LOGIN</button>
@@ -96,7 +97,7 @@
         </div>
         <!-- Controls -->
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <label style="color: #4ec0ff; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; text-shadow: 0 0 8px rgba(78,192,255,0.6);">🎵 BGM</label>
+            <label style="color: #4ec0ff; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; text-shadow: 0 0 8px rgba(78,192,255,0.6);">BGM</label>
             <select id="bgm-select" style="padding: 6px 8px; border-radius: 2px; border: 1px solid rgba(78,192,255,0.6); background: rgba(3,4,10,0.8); cursor: pointer; font-size: 11px; color: #d7eef9; font-family: 'Courier New', monospace; box-shadow: 0 0 12px rgba(78,192,255,0.2); flex: 1; min-width: 100px;">
                 <option value="">-- None --</option>
             </select>
@@ -165,7 +166,7 @@
                 // Show hexagon animation after 1 second delay
                 setTimeout(() => {
                     directoryHexGrid.start();
-                }, 1000);
+                }, 100);
                 
                 // Hide hexagon animation after 1.3 seconds of animation (total 2.3 seconds)
                 setTimeout(() => {
@@ -206,7 +207,10 @@
 
             const itemsHTML = items.map((item, index) => {
                 const mediaElement = item.image ?
-                    `<img src="${imageUrl(item.image)}" alt="${item.name}" class="item-image">` :
+                    `<div class="item-media-wrapper">
+                        <img src="${imageUrl(item.image)}" alt="${item.name}" class="item-image" onload="revealItemOverlay(this)">
+                        <div class="item-overlay"></div>
+                    </div>` :
                     '<div class="no-image">No Media</div>';
 
                 return `
@@ -222,6 +226,15 @@
             }).join('');
 
             container.innerHTML = itemsHTML;
+        }
+
+        // Automatically reveal item image when it loads
+        function revealItemOverlay(img) {
+            const overlay = img.parentElement.querySelector('.item-overlay');
+            if (overlay) {
+                overlay.classList.add('revealed');
+                setTimeout(() => overlay.style.display = 'none', 400);
+            }
         }
 
         function showPreview(index) {
@@ -404,6 +417,96 @@
         loadBGM();
 
         // Hexagon Grid Animation
+        // Login Page Hexagon Grid
+        class LoginHexagonGrid {
+            constructor() {
+                this.canvas = document.getElementById('login-hexagon-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.hexagons = [];
+                this.animationStart = Date.now();
+                this.setupCanvas();
+                this.createHexagonGrid();
+                this.animate();
+            }
+
+            setupCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+
+            createHexagonGrid() {
+                const hexSize = 50;
+                const hexWidth = hexSize * Math.sqrt(3);
+                const hexHeight = hexSize * 2;
+                const vertSpacing = hexHeight * 0.75;
+                
+                for (let row = -1; row * vertSpacing < this.canvas.height + hexHeight * 2; row++) {
+                    for (let col = -1; col * hexWidth < this.canvas.width + hexWidth * 2; col++) {
+                        let x = col * hexWidth;
+                        let y = row * vertSpacing;
+                        
+                        if (row % 2 === 1) {
+                            x += hexWidth / 2;
+                        }
+                        
+                        this.hexagons.push({
+                            x: x,
+                            y: y,
+                            size: hexSize,
+                            baseOpacity: 0.15
+                        });
+                    }
+                }
+            }
+
+            drawHexagon(x, y, size, fillOpacity, strokeOpacity) {
+                this.ctx.save();
+                this.ctx.fillStyle = '#4ec0ff';
+                this.ctx.strokeStyle = '#4ec0ff';
+                this.ctx.lineWidth = 1;
+                
+                this.ctx.beginPath();
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i * 60 - 30) * Math.PI / 180;
+                    const px = x + size * Math.cos(angle);
+                    const py = y + size * Math.sin(angle);
+                    if (i === 0) this.ctx.moveTo(px, py);
+                    else this.ctx.lineTo(px, py);
+                }
+                this.ctx.closePath();
+                
+                // Draw fill with fill opacity
+                this.ctx.globalAlpha = fillOpacity;
+                this.ctx.fill();
+                
+                // Draw stroke with stroke opacity
+                this.ctx.globalAlpha = strokeOpacity;
+                this.ctx.stroke();
+                this.ctx.restore();
+            }
+
+            animate() {
+                const elapsed = (Date.now() - this.animationStart) / 1000;
+                const pulseValue = (Math.sin(elapsed * 2) + 1) / 2; // Oscillates between 0 and 1
+                
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.hexagons.forEach(hex => {
+                    const fillOpacity = hex.baseOpacity; // Static fill
+                    const strokeOpacity = hex.baseOpacity + (pulseValue * 0.3); // Pulsing stroke
+                    this.drawHexagon(hex.x, hex.y, hex.size, fillOpacity, strokeOpacity);
+                });
+                
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        const loginHexGrid = new LoginHexagonGrid();
+        window.addEventListener('resize', () => {
+            loginHexGrid.setupCanvas();
+            loginHexGrid.hexagons = [];
+            loginHexGrid.createHexagonGrid();
+        });
+
         class HexagonGrid {
             constructor() {
                 this.canvas = document.getElementById('hexagon-canvas');
@@ -505,7 +608,6 @@
                 this.hexagons = [];
                 this.animationProgress = 0;
                 this.isAnimating = false;
-                
                 this.setupCanvas();
                 this.createHexagonGrid();
             }
@@ -522,21 +624,17 @@
                 const hexWidth = hexSize * Math.sqrt(3);
                 const hexHeight = hexSize * 2;
                 const vertSpacing = hexHeight * 0.75;
-                
                 for (let row = -1; row * vertSpacing < this.canvas.height + hexHeight * 2; row++) {
                     for (let col = -1; col * hexWidth < this.canvas.width + hexWidth * 2; col++) {
                         let x = col * hexWidth;
                         let y = row * vertSpacing;
-                        
                         // Offset every other row for proper hexagon packing
                         if (row % 2 === 1) {
                             x += hexWidth / 2;
                         }
-                        
                         // Calculate delay based on x position (left to right)
                         const xRatio = x / this.canvas.width;
                         const delay = xRatio * 0.8;
-                        
                         this.hexagons.push({
                             x: x,
                             y: y,
@@ -554,7 +652,6 @@
                 this.ctx.fillStyle = '#031027';
                 this.ctx.strokeStyle = '#0b1a24';
                 this.ctx.lineWidth = 1.5;
-                
                 this.ctx.beginPath();
                 for (let i = 0; i < 6; i++) {
                     const angle = (i * 60 - 30) * Math.PI / 180;
@@ -571,29 +668,24 @@
 
             animate(progress) {
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                
-                const FADE_IN_END = 0.65;
-                const TOTAL_DURATION = 1.3;
-                
+                const FADE_IN_END = 3;
+                const TOTAL_DURATION = 3;
                 this.hexagons.forEach(hex => {
                     const delayedProgress = Math.max(0, progress - hex.delay);
-                    
                     let opacity;
                     if (delayedProgress < FADE_IN_END) {
                         // Fade in phase (0 to 0.65s)
-                        const fadeInProgress = Math.min(1, delayedProgress / 0.5);
+                        const fadeInProgress = Math.min(5, delayedProgress / 1);
                         opacity = fadeInProgress;
                     } else {
                         // Fade out phase (0.65s to 1.3s)
-                        const fadeOutProgress = Math.min(1, (delayedProgress - FADE_IN_END) / 0.5);
+                        const fadeOutProgress = Math.min(5, (delayedProgress - FADE_IN_END) / 1);
                         opacity = 1 - fadeOutProgress;
                     }
-                    
                     this.drawHexagon(hex.x, hex.y, hex.size, opacity);
                 });
-
                 if (progress < TOTAL_DURATION) {
-                    requestAnimationFrame(() => this.animate(progress + 0.016));
+                    requestAnimationFrame(() => this.animate(progress + 1));
                 }
             }
 
@@ -620,6 +712,9 @@
 
         // Play BGM when user clicks LOGIN button
         function hideClickMePage() {
+            // Show main wrapper
+            document.querySelector('.main-wrapper').style.display = 'flex';
+            
             // Start hexagon grid animation
             hexGrid.start();
 

@@ -1,3 +1,57 @@
+/* Black overlay for item reveal with loading animation */
+.item-media-wrapper {
+    position: relative;
+    width: 100%;
+    height: 180px;
+}
+
+.item-image {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    display: block;
+}
+
+.item-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.88);
+    transition: opacity 0.4s;
+    opacity: 1;
+    z-index: 2;
+    cursor: pointer;
+    border-radius: 0 0 10px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.item-overlay::before {
+    content: '';
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(78,192,255,0.3);
+    border-top-color: rgba(78,192,255,0.8);
+    border-radius: 50%;
+    animation: spin-loader 0.8s linear infinite;
+}
+
+@keyframes spin-loader {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.item-overlay.revealed {
+    opacity: 0;
+    pointer-events: none;
+}
 @font-face {
     font-family: 'NEXON Football Gothic L';
     src: url('font/NEXON_Football_Gothic_L.otf') format('opentype');
@@ -231,6 +285,15 @@
     }
 }
 
+@keyframes fadeInHexagons {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
 /* Hexagon Canvas Animation */
 .hexagon-canvas {
     position: fixed;
@@ -282,8 +345,36 @@ html,body{
 }
 
 body {
-    font-family: 'Segoe UI', Roboto, Inter, system-ui, -apple-system, 'Helvetica Neue', Arial;
+    font-family: 'Segoe UI', Roboto, Inter, system-ui, -apple-system, 'Helvetica Neue', Arial,;
     /* custom background (first layer) + subtle decorative gradients */
+    background: transparent;
+    color: #d7eef9;
+    min-height: 100vh;
+    -webkit-font-smoothing:antialiased;
+}
+
+/* Light mode background for click-me page */
+@media (prefers-color-scheme: light) {
+    body {
+        background:
+            linear-gradient(180deg, #f5f5f5 0%, #e8e8e8 100%);
+    }
+}
+
+/* Dark mode background for click-me page */
+@media (prefers-color-scheme: dark) {
+    body {
+        background:
+            linear-gradient(180deg, #02040a 0%, #031027 100%);
+    }
+}
+
+/* Main wrapper for layout */
+.main-wrapper {
+    display: none;
+    min-height: 100vh;
+    gap: 16px;
+    padding: 12px;
     background:
         var(--custom-bg),
         radial-gradient(circle at 10% 10%, rgba(78,192,255,0.03), transparent 12%),
@@ -292,17 +383,6 @@ body {
     background-size: cover, auto, auto, cover;
     background-position: center, 0 0, 100% 100%, center;
     background-repeat: no-repeat;
-    color: #d7eef9;
-    min-height: 100vh;
-    -webkit-font-smoothing:antialiased;
-}
-
-/* Main wrapper for layout */
-.main-wrapper {
-    display: flex;
-    min-height: 100vh;
-    gap: 16px;
-    padding: 12px;
 }
 
 /* Left Sidebar Tray */
